@@ -1,0 +1,959 @@
+#Gan Ming Liang TP063338
+#Amadea Lim Yi Wen TP064038
+
+PROGRAM AEGIS(AsianEventGeneralInterfaceSolution)
+
+
+FUNCTION homepage
+
+BEGIN
+	DECLARE option AS INTEGER
+	PRINT("=== Welcome to Asian Event Management Service (AEMS) ===")
+	PRINT("Please select your position:")
+	PRINT("1. Admin")
+	PRINT("2. Customer")
+	PRINT("3. Exit")
+	PRINT("Please select an option: ")
+	GET option
+	IF option = 1 THEN
+		CALL FUNCTION adminHome()
+	ELSE IF option = 2 THEN
+		CALL FUNCTION guestOption()
+	ELSE IF option = 3 THEN
+		CALL FUNCTION exitPage()
+	ELSE
+		PRINT("Please select a valid option")
+		CALL FUNCTION homepage()
+	ENDIF
+END
+
+
+FUNCTION exitPage
+
+BEGIN
+	PRINT("\nYou have exited the application")
+	PRINT("Thank you for using our services!")
+END
+
+
+FUNCTION adminHome
+
+BEGIN
+	DECLARE option AS INTEGER
+    PRINT("=== Please select an option below: ===")
+    PRINT("1. Admin Login")
+    PRINT("2. Admin Registration")
+    PRINT("3. Go Back")
+    PRINT("Your choice: ")
+	GET option
+    IF option = 1 THEN
+        CALL FUNCTION adminLogin()
+    ELSE IF option = 2 THEN
+        CALL FUNCTION adminAuth()
+    ELSE IF option = 3 THEN
+        CALL FUNCTION homepage()
+    ELSE
+        PRINT("Please select a valid option")
+        CALL FUNCTION adminHome()
+	ENDIF
+END
+
+
+FUNCTION adminAuth
+
+BEGIN
+	DECLARE code AS STRING
+	DECLARE choice AS INTEGER
+    PRINT("Please enter company referral code: ")
+	GET code
+    IF code NOT EQUALS TO "AEMS0001" THEN
+        PRINT("Incorrect referral code.")
+        PRINT("do you want to (1) Try Again, or (2) Go Back ?")
+        PRINT("Your choice: ")
+		GET choice
+        IF choice = 1 THEN
+            CALL FUNCTION adminAuth()
+        ELSE IF choice = 2 THEN
+            CALL FUNCTION adminHome()
+        ELSE
+            PRINT("option not supported, returning to homepage...")
+            CALL FUNCTION homepage()
+        ENDIF
+    ELSE
+        PRINT("Verification successful!")
+        CALL FUNCTION adminSignup()
+	ENDIF
+END
+
+
+FUNCTION adminSignup
+
+BEGIN
+	DECLARE username, password1, password2 AS STRING
+	OPEN adminList IN read MODE
+	READ CONTENTS OF adminList INTO adminHandler
+    PRINT(">>> Welcome to AEMS admin registration page, please follow the instruction below <<<")
+    PRINT("Enter a username: ")
+	GET username
+    PRINT("Enter a password: ")
+	GET password1
+    PRINT("Confirm your password: ")
+	GET password2
+
+    adminUN = NEW ARRAY
+    adminPW = NEW ARRAY
+    FOR i IN adminHandler
+		SPLIT i INTO a,b USING ", " AS DELIMITER
+        b = REMOVE WHITE SPACES FROM b
+        APPEND a TO adminUN
+        APPEND b TO adminPW
+	ENDFOR
+
+    IF password1 NOT EQUALS TO password2 THEN
+        PRINT("Password does not match, please try again")
+        CALL FUNCTION adminSignup()
+    ELSE IF LENGTH OF password1 <= 8 THEN
+		PRINT("Password must be longer than 8 characters, please try again")
+		CALL FUNCTION adminSignup()
+	ELSE IF username EXISTS IN adminUN THEN
+		PRINT("Username already taken, please try again")
+		CALL FUNCTION adminSignup()
+	ELSE
+		OPEN adminList IN append MODE
+		APPEND CONTENTS OF adminList INTO db
+		APPEND username, password1 INTO db USING ", " AS DELIMITER
+		PRINT("Registration Successful!")
+		CLOSE db
+	ENDIF
+    CLOSE adminHandler
+	CALL FUNCTION adminHome()
+END
+	
+
+FUNCTION adminLogin
+
+BEGIN
+	DECLARE adminUN, adminPW, option AS STRING
+	tempList = NEW ARRAY
+	OPEN adminList IN read MODE
+	READ CONTENTS OF adminList INTO adminHandler
+    WHILE True
+        PRINT(">>> Admin Login Page <<<")
+        PRINT("Enter your username: ")
+		GET adminUN
+        PRINT("Enter your password: ")
+		GET adminPW
+        FOR i IN adminHandler
+            APPEND i TO tempList
+		ENDFOR
+        IF (adminUN + ", " + adminPW + "\n") FOUND IN tempList THEN
+			CAPITALIZE adminUN
+            PRINT("Login successful!")
+            PRINT("Welcome back,", adminUN)
+            CALL FUNCTION adminOption()
+            BREAK
+        ELSE
+            PRINT("
+			>>> invalid credentials...
+			")
+            PRINT("would you like to sign-up?
+			[Y] for admin registration
+			[N] to retry login
+			Your choice: ")
+            GET option
+			IF option = "N" THEN
+                CONTINUE
+            ELSE IF option = "Y" THEN
+                CALL FUNCTION adminAuth()
+            ELSE
+                PRINT("invalid option, returning to homepage...")
+                BREAK
+			ENDIF
+		ENDIF
+	ENDWHILE
+    CLOSE adminHandler
+    CALL FUNCTION homepage()
+END
+
+
+FUNCTION adminOption
+
+BEGIN
+	DECLARE choice AS INTEGER
+	DECLARE selection, option AS STRING
+    PRINT("
+	What would you like to do?
+	")
+    PRINT("1. Add event")
+    PRINT("2. Modify event records")
+    PRINT("3. Display record details")
+    PRINT("4. Search specific record")
+    PRINT("5. Exit")
+    PRINT("Your choice: ")
+	GET choice
+	IF choice = 1 THEN
+		CALL FUNCTION addEvent()
+	ELSE IF choice = 2 THEN
+		CALL FUNCTION modifyEvent()
+	ELSE IF choice = 3 THEN
+        PRINT("display options:
+		a. Event Category
+		b. All Events
+		c. Registered Customers
+		d. Customer Payment")
+        PRINT("Enter your option: ")
+		GET selection
+		IF selection = "a" THEN
+            CALL FUNCTION adminViewCategory()
+        ELSE IF selection = "b" THEN
+            CALL FUNCTION adminViewEvent()
+        ELSE IF selection = "c" THEN
+            CALL FUNCTION adminViewCustomerList()
+        ELSE IF selection = "d" THEN
+            CALL FUNCTION adminViewCustomerPayment()
+        ELSE
+            PRINT("option not supported, try again")
+            CALL FUNCTION adminOption()
+		ENDIF
+    ELSE IF choice = 4 THEN
+        PRINT("Please select a search option:
+		a. Search Customer
+		b. Search Customer's payment")
+        PRINT("Enter your option: ")
+		GET option
+        IF option = "a" THEN
+            CALL FUNCTION adminSearchCustomerInfo()
+        ELSE IF option = "b" THEN
+            CALL FUNCTION adminSearchCustomerPayment()
+        ELSE
+            PRINT("option not supported, try again")
+            CALL FUNCTION adminOption()
+		ENDIF
+    ELSE IF choice = 5 THEN
+        CALL FUNCTION exitPage()
+    ELSE
+        PRINT("option not supported, try again")
+        CALL FUNCTION adminOption()
+	ENDIF
+END
+
+
+FUNCTION memberSignup
+
+BEGIN
+	DECLARE username, password1, password2 AS STRING
+	OPEN memberList IN read MODE
+	READ CONTENTS OF memberList INTO memberHandler
+    PRINT(">>> Welcome to AEMS member registration page, please follow the instruction below <<<")
+    PRINT("Enter a username: ")
+	GET username
+	PRINT("Enter a password: ")
+	GET password1
+    PRINT("Confirm your password: ")
+	GET password2
+
+	memberUN = NEW ARRAY
+    memberPW = NEW ARRAY
+    FOR i IN memberHandler
+        SPLIT i INTO a,b USING ", " AS DELIMITER
+        b = REMOVE WHITE SPACES FROM  b
+        APPEND a TO memberUN
+        APPEND b TO memberPW
+	ENDFOR
+
+    IF password1 NOT EQUALS TO password2 THEN
+        PRINT("Password does not match, please try again")
+        CALL FUNCTION memberSignup()
+    ELSE IF LENGTH OF password1 <= 8 THEN
+		PRINT("Password must be longer than 8 characters, please try again")
+		CALL FUNCTION memberSignup()
+	ELSE IF username in memberUN THEN
+		PRINT("Username already taken, please try again")
+		CALL FUNCTION memberSignup()
+	ELSE
+		OPEN memberList IN append MODE
+		APPEND CONTENTS OF memberList INTO db
+		APPEND username, password1 INTO db USING ", " AS DELIMITER
+		PRINT("Registration Successful!")
+		CLOSE db
+	ENDIF
+    CLOSE memberHandler
+    CALL FUNCTION guestOption()
+END
+
+
+FUNCTION addEvent
+
+BEGIN
+	DECLARE choice, option AS INTEGER
+	DECLARE eventName, eventOrg, eventDate, eventTime, eventDuration, eventLocation, eventFee, eventPrice, newCat AS STRING
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO eventHandler
+    PRINT(">>> Welcome to AEMS event page, please select your category of events to add <<<")
+    WHILE True
+        PRINT("Event Category:
+		1. Sports/Martial Arts
+		2. Musical Performance
+		3. Dance/Performing Arts
+		4. Expo/Exhibition
+		5. Competition/Tournament
+		6. Others")
+        PRINT("Please enter your choice: ")
+		GET choice
+        IF choice = 1 THEN
+            eventCat = "Sports & Martial Arts"
+            BREAK
+        ELSE IF choice = 2 THEN
+            eventCat = "Musical Performance"
+            BREAK
+        ELSE IF choice = 3 THEN
+            eventCat = "Dance & Performing Arts"
+            BREAK
+        ELSE IF choice = 4 THEN
+            eventCat = "Expo & Exhibition"
+            BREAK
+        ELSE IF choice = 5 THEN
+            eventCat = "Competition & Tournament"
+            BREAK
+        ELSE IF choice = 6 THEN
+            PRINT("Enter the name of your category: ")
+			GET newCat
+            eventCat = newCat
+            BREAK
+		ELSE
+			PRINT("please select a valid option")
+			CONTINUE
+		ENDIF
+	ENDWHILE
+
+    PRINT("Enter event name: ")
+	GET eventName
+    PRINT("Enter event organizer: ")
+	GET eventOrg
+    PRINT("Enter event start date in this format > [dd/mm/yyyy]: ")
+	GET eventDate
+    PRINT("Enter event start time in 24-hour format [eg: 16:30]: ")
+	GET eventTime
+    PRINT("Enter event duration [eg: 2 days]: ")
+	GET eventDuration
+    PRINT("Enter the venue of the event: ")
+	GET eventLocation
+
+    CAPITALIZE FIRST LETTER OF EACH WORD IN eventName
+    CAPITALIZE FIRST LETTER OF EACH WORD IN eventLocation
+
+    WHILE True
+        PRINT("Is your event free-of-charge? [Y/N]: ")
+		GET eventFee
+        IF eventFee = "Y" THEN
+            eventPrice = "0.00"
+            BREAK
+        ELSE IF eventFee = "N" THEN
+            PRINT("Enter event price (per person) in RM [eg: 2.00]: ")
+            GET eventPrice
+			BREAK
+        ELSE
+            PRINT("Error: Please insert either [Y] or [N]")
+            CONTINUE
+		ENDIF
+    ENDWHILE
+	
+    eCat = NEW ARRAY
+    eName = NEW ARRAY
+    eOrg = NEW ARRAY
+    eDate = NEW ARRAY
+    eTime = NEW ARRAY
+    eDura = NEW ARRAY
+    eLoca = NEW ARRAY
+    eFee = NEW ARRAY
+
+    FOR i IN eventHandler
+		SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+        h = REMOVE WHITE SPACES FROM h
+        APPEND a TO eCat
+        APPEND b TO eName
+        APPEND c TO eOrg
+        APPEND d TO eDate
+        APPEND e TO eTime
+        APPEND f TO eDura
+        APPEND g TO eLoca
+        APPEND h TO eFee
+	ENDFOR
+
+    OPEN eventList IN append MODE
+	APPEND CONTENTS OF eventList INTO db
+	APPEND eventCat, eventName, eventOrg, eventDate, eventTime, eventDuration, eventLocation, eventPrice INTO db USING ", " AS DELIMITER
+    PRINT("Registration Successful!")
+    CLOSE db
+    CLOSE eventHandler
+
+	WHILE True
+		PRINT("Do you want to [1] return to admin homepage, [2] add another event?")
+		PRINT("Your choice: ")
+		GET option
+		IF option = 1 THEN
+			PRINT("returned")
+			CALL FUNCTION adminOption()
+		ELSEIF option = 2 THEN
+			CALL FUNCTION addEvent()
+		ELSE 
+			PRINT("please select a valid option")
+			CONTINUE
+		ENDIF
+	ENDWHILE
+END
+
+
+FUNCTION adminViewCategory
+
+BEGIN
+	DECLARE counter, counterCat1, counterCat2, counterCat3, counterCat4, counterCat5, counterCat6 AS INTEGER
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO eventdb
+    counterCat1 = 0
+    counterCat2 = 0
+    counterCat3 = 0
+    counterCat4 = 0
+    counterCat5 = 0
+    counterCat6 = 0
+    FOR i IN eventdb
+        SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+        IF "Sports & Martial Arts" FOUND IN a THEN
+            counterCat1 = counterCat1 + 1
+        ELSE IF "Musical Performance" FOUND IN a THEN
+            counterCat2 = counterCat2 + 1
+        ELSE IF "Dance & Performing Arts" FOUND IN a THEN
+            counterCat3 = counterCat3 + 1
+        ELSE IF "Expo & Exhibition" FOUND IN a THEN
+            counterCat4 = counterCat4 + 1
+        ELSE IF "Competition & Tournament" FOUND IN a THEN
+            counterCat5 = counterCat5 + 1
+        ELSE
+            counterCat6 = counterCat6 + 1
+		ENDIF
+	ENDFOR
+
+    PRINT("Here are all the available Categories:")
+    PRINT("1. Sports & Martial Arts\n", "Number of event in this Cat =", counterCat1)
+    PRINT("2. Musical Performance\n", "Number of event in this Cat =", counterCat2)
+    PRINT("3. Dance & Performing Arts\n", "Number of event in this Cat =", counterCat3)
+    PRINT("4. Expo & Exhibition\n", "Number of event in this Cat =", counterCat4)
+    PRINT("5. Competition & Tournament\n", "Number of event in this Cat =", counterCat5)
+    PRINT("6. Others",
+	"Number of event in this Cat =", counterCat6)
+    CLOSE eventdb
+    CALL FUNCTION adminOption()
+END
+	
+
+FUNCTION adminViewEvent
+
+BEGIN
+	DECLARE counter AS INTEGER
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO eventdb
+    counter = 1
+    PRINT("here are all the event & their details:")
+    FOR i IN eventdb
+        SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+        PRINT(counter,"|", b,
+		"Category:", a, 
+		"Organizer:", c, 
+		"Date:", d, 
+		"Time:", e, 
+		"Duration:", f, 
+		"Venue:", g, 
+		"Price (RM):", h, 
+		"")
+        counter = counter + 1
+	ENDFOR
+    CLOSE eventdb
+    CALL FUNCTION adminOption()
+END
+
+
+FUNCTION adminViewCustomerList
+
+BEGIN
+	DECLARE counter AS INTEGER
+	OPEN memberList IN read MODE
+	READ CONTENTS OF memberList INTO memberdb
+	counter = 1
+    PRINT("here are all the members:")
+    FOR i IN memberdb
+        SPLIT i INTO a,b USING ", " AS DELIMITER
+        PRINT(counter,"|", a)
+        counter = counter + 1
+	ENDFOR
+	CLOSE memberdb
+    CALL FUNCTION adminOption()
+END
+
+
+FUNCTION modifyEvent
+
+BEGIN
+	DECLARE selection, counter, choice AS INTEGER
+	DECLARE modCat, mod2, mod3, mod4, mod5, mod6, mod7, mod8 AS STRING
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO eventdb
+    counter = 1
+    PRINT("Which event would you like to amend?")
+	FOR i IN eventdb
+		SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+        PRINT(counter,"|", b)
+        counter = counter + 1
+	ENDFOR
+	CLOSE eventdb
+
+    PRINT("Your choice: ")
+	GET selection
+    selection = selection - 1 
+	
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO modifydb
+    COPY CONTENTS FROM modifydb TO modList
+    editList = NEW ARRAY 
+    newList = modList
+    tempIndex = COPY CONTENT FROM modList AT ARRAY LOCATION selection
+    CLOSE modifydb
+
+    PRINT(">>> Current Event Details:")
+    PRINT(tempIndex)
+
+    WHILE True
+        PRINT("Select New Event Category:
+		1. Sports/Martial Arts
+		2. Musical Performance
+		3. Dance/Performing Arts
+		4. Expo/Exhibition
+		5. Competition/Tournament
+		6. Others")
+        PRINT("Please enter your choice: ")
+		GET choice
+        IF choice = 1 THEN
+            mod1 = "Sports & Martial Arts"
+            BREAK
+        ELSE IF choice = 2 THEN
+            mod1 = "Musical Performance"
+            BREAK
+        ELSE IF choice = 3 THEN
+            mod1 = "Dance & Performing Arts"
+            BREAK
+        ELSE IF choice = 4 THEN
+            mod1 = "Expo & Exhibition"
+            BREAK
+        ELSE IF choice = 5 THEN
+            mod1 = "Competition & Tournament"
+            BREAK
+        ELSE IF choice = 6 THEN
+            PRINT("Enter the name of your category: ")
+			GET modCat
+            mod1 = modCat
+            BREAK
+		ENDIF
+	ENDWHILE
+
+
+    PRINT("New event name: ")
+	GET mod2
+    PRINT("New event organizer: ")
+	GET mod3
+    PRINT("New event start date [eg: dd/mm/yyyy]: ")
+	GET mod4
+    PRINT("New event start time [eg: 16:30]: ")
+	GET mod5
+    PRINT("New event duration [eg: 2 days]: ")
+	GET mod6
+    PRINT("New venue of the event: ")
+	GET mod7
+	PRINT("New event price: ")
+	GET mod8
+
+    APPEND mod1 TO editList
+    APPEND mod2 TO editList
+    APPEND mod3 TO editList
+	APPEND mod4 TO editList
+    APPEND mod5 TO editList
+    APPEND mod6 TO editList
+    APPEND mod7 TO editList
+    APPEND mod8 TO editList
+    finalEdit = JOIN STRINGS IN editLIST USING ', '
+
+    DELETE newList[selection]
+    INSERT finalEdit INTO newList AT LOCATION selection
+
+    OPEN eventList IN write MODE
+	WRITE CONTENTS OF eventList INTO db
+    FOR x IN newList
+        WRITE x INTO db
+	ENDFOR
+    CLOSE db
+    PRINT("Modification Successful!")
+    CALL FUNCTION adminOption()
+END
+
+
+FUNCTION guestOption
+
+BEGIN
+	DECLARE choice AS INTEGER
+    PRINT(">>> What would you like to do?")
+    PRINT("1. View Category")
+    PRINT("2. View Event")
+    PRINT("3. Log in as a Member")
+    PRINT("4. Register as a Member")
+    PRINT("5. Exit")
+    PRINT("Your choice: ")
+	GET choice
+    IF choice = 1 THEN
+        CALL FUNCTION guestViewCategory()
+    ELSE IF choice = 2 THEN
+        CALL FUNCTION guestViewEvent()
+    ELSE IF choice = 3 THEN
+        CALL FUNCTION memberLogin()
+    ELSE IF choice = 4 THEN
+        CALL FUNCTION memberSignup()
+    ELSE IF choice = 5 THEN
+        CALL FUNCTION exitPage()
+    ELSE
+        PRINT("option not support, please try again")
+        CALL FUNCTION guestOption()
+	ENDIF
+END
+
+
+FUNCTION guestViewCategory
+
+BEGIN 
+	DECLARE back AS STRING
+    PRINT("here are the available event categories: ")
+    PRINT("1. Sports & Martial Arts")
+    PRINT("2. Musical Performance")
+    PRINT("3. Dance & Performing Arts")
+    PRINT("4. Expo & Exhibition")
+    PRINT("5. Competition & Tournament")
+    PRINT("6. Others\n")
+    PRINT("press <enter> to return")
+	GET back
+    IF back = "" THEN
+        CALL FUCNTION guestOption()
+    ELSE
+        CALL FUNCTION guestOption()
+	ENDIF
+END
+
+
+FUNCTION guestViewEvent
+
+BEGIN
+	DECLARE counter AS INTEGER
+	DECLARE back AS STRING
+	OPEN eventList IN read MODE
+	READ CONTENTS OF eventList INTO eventdb
+    counter = 1
+    PRINT("here are all the event & their details: ")
+    FOR i IN eventdb
+        SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+        PRINT(counter,"|", b, 
+		"Category:", a, 
+		"Organizer:", c, 
+		"Date:", d, 
+		"Time:", e, 
+		"Duration:", f, 
+		"Venue:", g, 
+		"Price (RM):", h, 
+		"")
+        counter = counter + 1
+	ENDFOR
+    CLOSE eventdb
+    PRINT("press <enter> to return")
+	GET back
+    IF back = "" THEN
+        CALL FUNCTION guestOption()
+    ELSE
+        CALL FUNCTION guestOption()
+	ENDIF
+END
+
+
+FUNCTION memberLogin
+
+BEGIN
+	DECLARE cartTotal, payment AS FLOAT
+	DECLARE answer, counter, selection AS INTEGER
+	DECLARE memberUN, memberPW, choose, a, b, option AS STRING
+    dt_today = GET TODAY'S date AND time AND CONVERT INTO STRING
+    tempList = NEW ARRAY
+	OPEN memberList IN read MODE
+	READ CONTENTS OF memberList INTO memberHandler
+    WHILE True
+        PRINT(">>> Member Login Page <<<")
+        PRINT("Enter your username: ")
+		GET memberUN
+        PRINT("Enter your password: ")
+		GET memberPW
+        FOR i IN memberHandler
+            APPEND i INTO tempList
+		ENDFOR
+		
+        IF (memberUN + ", " + memberPW + "\n") FOUND IN tempList THEN
+            CAPITALIZE memberUN
+            PRINT("Login successful!")
+            PRINT("Welcome back,", memberUN)
+			memberName = memberUN
+			cartItems = NEW ARRAY
+			cartTotal = 0
+
+            WHILE True
+                PRINT("\nwhat would you like?")
+                PRINT("1. Add events to Shopping Cart")
+                PRINT("2. View purchased events")
+                PRINT("3. Exit")
+                PRINT("Your Choice: ")
+				GET answer
+
+                IF answer = 1 THEN
+                    WHILE True
+                        counter = 1
+                        PRINT("Which event would you like to add?")
+						OPEN eventList IN read MODE
+						READ CONTENTS OF eventList INTO eventdb
+                        FOR i IN eventdb
+                            SPLIT i INTO a,b,c,d,e,f,g,h USING ", " AS DELIMITER
+                            PRINT(counter,"|", b)
+                            counter = counter + 1
+						ENDFOR
+                        CLOSE eventdb
+
+                        PRINT("Your choice: ")
+                        GET selection
+                        CHECK (selection IS EQUAL TO DATATYPE integer) THEN
+                            IF selection IS FROM 0 TO counter THEN
+                                selection = selection - 1
+                                PASS
+                            ELSE
+                                PRINT("\n>>> selected value out of bond, try again\n")
+                                CONTINUE
+                        ELSE
+                            PRINT("\n>>> please insert an integer value\n")
+                            CONTINUE
+                        END CHECK
+						
+						OPEN eventList IN read MODE
+						READ CONTENTS OF eventList INTO itemdb
+                        COPY CONTENTS FROM itemdb TO itemList
+                        itemIndex = SPLIT itemList AT LOCATION selection USING "," AS DELIMITER
+                        addItem = COPY CONTENT FROM itemIndex AT ARRAY LOCATION 1
+                        itemPrice = REPLACE '\n' AS '' FROM itemIdex AT ARRAY LOCATION 7
+                        itemPrice = CONVERT itemPrice INTO FLOAT
+                        CLOSE itemdb
+
+                        APPEND addItem INTO cartItems
+                        cartTotal = cartTotal + itemPrice
+                        PRINT("do you want to add more items? <Y/N>")
+						GET choose
+                        IF choose = "Y" THEN
+                            CONTINUE
+                        ELSE IF choose = "N" THEN
+                            PRINT("proceeding to payment...")
+                            BREAK
+                        ELSE
+                            PRINT("option not supported, proceeding to payment")
+                            BREAK
+						ENDIF
+					ENDWHILE
+
+                    WHILE True
+                        PRINT("total amount dued: ", cartTotal)
+                        PRINT("please enter your payment amount: ")
+                        GET payment
+                        CHECK (payment IS EQUAL TO DATATYPE float) THEN
+                            IF payment = cartTotal THEN
+                                PRINT("payment successful!")
+                                summaryPrice = cartTotal
+                                balance = 0.00
+                                BREAK
+                            ELSE IF payment < cartTotal THEN
+                                PRINT("insufficient amount, please try again")
+                                CONTINUE
+                            ELSE IF payment > cartTotal THEN
+                                balance = payment - cartTotal
+                                PRINT("payment successful! RM", balance, "have been returned to your account")
+                                summaryPrice = cartTotal
+                                BREAK
+                            ELSE
+                                PRINT("please insert a valid number")
+                                CONTINUE
+                            ENDIF
+                        ELSE
+                            PRINT("\n>>> please insert a valid amount!\n")
+                            CONTINUE
+                        END CHECK
+					ENDWHILE
+
+                    PRINT("Order Summary:")
+                    PRINT("You bought:", cartItems)
+                    PRINT("Total cost:", cartTotal)
+                    PRINT("You paid:", payment)
+                    PRINT("Balance returned:", balance)
+                    PRINT("order completed! thank you for your support!")
+                    PRINT('')
+                    CLOSE eventdb
+
+                    OPEN cartList IN append MODE
+					APPEND CONTENTS OF cartList INTO cartdb
+                    FOR i IN cartItems
+                        WRITE (memberName+", "+i+", "+"paid on "+dt_today+"\n") INTO cartdb
+					ENDFOR
+                    CLOSE cartdb
+					CONTINUE
+
+
+                ELSE IF answer = 2 THEN
+                    checkIndexList = NEW ARRAY
+                    a = '1'
+                    b = '0'
+                    PRINT("=== Here are all your registered events ===")
+					OPEN cartList IN read MODE
+					READ CONTENTS OF cartList INTO checkdb
+                    COPY CONTENTS FROM checkdb TO checkList
+                    CLOSE checkdb
+                    FOR i FROM 0 TO (LENGTH OF checkList)
+                        tempCheck = SPLIT checkList AT LOCATION i USING "," AS DELIMITER
+                        IF memberName FOUND IN tempCheck THEN
+                            APPEND a TO checkIndexList
+                        ELSE
+                            APPEND b TO checkIndexList
+						ENDIF
+					ENDFOR
+
+                    FOR i FROM 0 TO (LENGTH OF checkIndexList)
+                        IF '1' FOUND IN checkIndexList THEN
+                            x = ARRAY LOCATION OF checkIndexList WHERE '1' IS PRESENT
+							REPLACE '\n' WITH '' FOR CONTENT IN ARRAY LOCATION x FROM checkList
+                            PRINT THE RESULT ABOVE
+                            REPLACE '1' AT ARRAY LOCATION x FROM checkIndexList WITH '0'
+                        ELSE
+                            PASS
+						ENDIF
+					ENDFOR
+					CONTINUE
+
+                ELSE IF answer = 3 THEN
+                    CALL FUNCTION exitPage()
+    
+				ELSE
+					PRINT("choice not supported, try again)
+					CONTINUE
+				ENDIF
+				BREAK
+
+        ELSE
+            PRINT(">>> invalid credentials...")
+            PRINT("would you like to sign-up?
+			[Y] for membership registration
+			[N] to retry login
+			Your choice: " )
+			GET option
+            IF option = "N" THEN
+                CONTINUE
+            ELSE IF option = "Y" THEN
+                CALL FUNCTION memberSignup()
+            ELSE
+                PRINT("invalid option, returning to homepage...")
+				CALL FUNCTION homepage()
+			ENDIF
+		ENDIF
+		BREAK
+	ENDWHILE
+	CLOSE memberHandler
+END
+
+
+FUNCTION adminViewCustomerPayment
+
+BEGIN
+	DECLARE counter AS INTEGER
+	OPEN cartList IN read MODE
+	READ CONTENTS OF cartList INTO paymentdb
+    counter = 1
+    PRINT("here are all the members:")
+    FOR i IN paymentdb
+        SPLIT i INTO a,b,c USING ", " AS DELIMITER
+        PRINT(counter,"|", 
+		"Member Name:", a, 
+		"Event Registered:", b, 
+		"Payment details:", c)
+        counter = counter + 1
+	ENDFOR
+    CLOSE paymentdb
+    CALL FUNCTION adminOption()
+END
+
+
+FUNCTION adminSearchCustomerInfo
+
+BEGIN
+	DECLARE search AS STRING
+    PRINT("Enter customer username to search: ")
+	GET search
+	OPEN memberList IN read MODE
+	READ CONTENTS OF memberList INTO searchdb
+	COPY CONTENTS OF searchdb INTO searchList
+    flag = False
+    CLOSE searchdb
+    FOR i FROM 0 TO (LENGTH OF searchList)
+		searchTemp = SPLIT searchList AT LOCATION i USING "," AS DELIMITER
+        IF search FOUND IN searchTemp THEN
+            flag = True
+        ELSE
+            PASS
+		ENDIF
+	ENDFOR
+
+    IF flag THEN
+        PRINT(search, "is a member of Asian Event Management Service")
+    ELSE
+        PRINT(search, "is NOT a member of Asian Event Management Service")
+	ENDIF
+    CALL FUNCTION adminOption()
+END
+
+
+FUNCTION adminSearchCustomerPayment
+
+BEGIN
+	DECLARE search, a, b AS STRING
+    PRINT("Enter customer username to search payment details: ")
+	GET search
+    CAPITALIZE search 
+    checkIndexList = NEW ARRAY
+    a = '1'
+    b = '0'
+    PRINT("=== Here are the payment details for", search, "===")
+	OPEN cartList IN read MODE
+	READ CONTENTS OF cartList INTO checkdb
+	COPY CONTENTS OF checkdb INTO checkList
+    CLOSE checkdb
+    FOR i FROM O TO (LENGTH OF checkList)
+        tempCheck = SPLIT checkList AT LOCATION i USING "," AS DELIMITER
+        IF search FOUND IN tempCheck THEN
+            APPEND a TO checkIndexList
+        ELSE
+            APPEND b TO checkIndexList
+		ENDIF
+	ENDFOR
+	
+    FOR i FROM 0 TO (LENGTH OF checkIndexList)
+        IF '1' FOUND IN checkIndexList THEN
+			x = ARRAY LOCATION OF checkIndexList WHERE '1' IS PRESENT
+			REPLACE '\n' WITH '' FOR CONTENT IN ARRAY LOCATION x FROM checkList
+            PRINT THE RESULT ABOVE
+            REPLACE '1' AT ARRAY LOCATION x FROM checkIndexList WITH '0'
+        ELSE
+            PASS
+		ENDIF
+	ENDFOR
+    CALL FUNCTION adminOption()
+END
